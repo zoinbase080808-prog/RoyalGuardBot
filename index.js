@@ -414,7 +414,7 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       // Получаем роли ПОСЛЕ обновления
-      const memberAfter = await guild.members.fetch(userId);
+      const memberAfter = await guild.members.fetch(userId, { force: true });
       const rolesAfter = TRACKED_ROLES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
         return r && memberAfter.roles.cache.has(r.id);
@@ -445,6 +445,14 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.editReply({ content: "❌ Something went wrong. Try again later." });
     }
   }
+});
+
+client.on("error", (err) => {
+  console.error("⚠️ Discord client error:", err.message);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("⚠️ Unhandled rejection:", err.message);
 });
 
 client.login(process.env.TOKEN);
