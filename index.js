@@ -300,12 +300,9 @@ client.on("interactionCreate", async (interaction) => {
     users[userId] = { code, linked: false, roblox: null };
 
     const embed = new EmbedBuilder()
-      .setTitle("🎮 ROBLOX VERIFICATION")
+      .setTitle("Verification")
       .setDescription(
-        "Join the verification game and enter this code:\n\n" +
-        `🔑 \`${code}\`\n\n` +
-        "⏳ Code expires when you restart verification.\n" +
-        "After entering the code in-game, click **Update Role**."
+        `Join the game and enter your code:\n[Verification Game](https://www.roblox.com/games/117521342225865/Verification)\n\n**Your code:** \`${code}\`\n\nAfter entering the code, click **Update Role**.`
       )
       .setColor(0xffaa00)
       .setFooter({ text: "BAR | British Army Regiment" });
