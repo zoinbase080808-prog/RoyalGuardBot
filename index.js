@@ -9,13 +9,12 @@ const {
   EmbedBuilder
 } = require("discord.js");
 
-// ── Express API (запускаем ДО бота) ──────────────────────────
+// ── Express API ──────────────────────────────────────────────
 const app = express();
 app.use(express.json());
 
-const users = {}; // { discordId: { code, linked, roblox } }
+const users = {};
 
-// Roblox игра шлёт сюда POST когда игрок вводит код
 app.post("/verify", (req, res) => {
   const { robloxName, code } = req.body;
 
@@ -31,14 +30,13 @@ app.post("/verify", (req, res) => {
   return res.json({ success: false, reason: "Invalid or expired code" });
 });
 
-// Health check — нужен Railway чтобы не усыплял сервис
 app.get("/", (req, res) => res.send("BAR Guard is alive ✅"));
 
 app.listen(process.env.PORT || 3000, () => {
   console.log(`🌐 API running on port ${process.env.PORT || 3000}`);
 });
 
-// ── Discord Bot ───────────────────────────────────────────────
+// ── Discord Bot ──────────────────────────────────────────────
 const client = new Client({
   intents: [GatewayIntentBits.Guilds]
 });
@@ -50,23 +48,28 @@ client.once("ready", async () => {
     const channel = await client.channels.fetch(process.env.CHANNEL_ID);
     if (!channel) return console.error("❌ Channel not found");
 
-    // Проверяем последние 10 сообщений — есть ли уже наше?
     const messages = await channel.messages.fetch({ limit: 10 });
     const existing = messages.find(
       m => m.author.id === client.user.id && m.components.length > 0
     );
 
-    // Если уже есть — не дублируем, просто логируем
     if (existing) {
       console.log("📌 Verification message already exists, skipping send.");
       return;
     }
 
-    // Если нет — отправляем новое
     const embed = new EmbedBuilder()
-      .setTitle("ROBLOX VERIFICATION SYSTEM")
-      .setDescription("Press a button below to verify or update your role.")
-      .setColor(0x00ff00);
+      .setTitle("🔗 ROBLOX VERIFICATION SYSTEM")
+      .setDescription(
+        "Link your Roblox account to gain access to the server.\n\n" +
+        "**How it works:**\n" +
+        "1️⃣ Click **Link Roblox Account**\n" +
+        "2️⃣ Join the verification game and enter the code\n" +
+        "3️⃣ Return here and click **Update Role**"
+      )
+      .setColor(0x00ff00)
+      .setFooter({ text: "BAR | British Army Regiment" })
+      .setTimestamp();
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -76,7 +79,7 @@ client.once("ready", async () => {
       new ButtonBuilder()
         .setCustomId("update")
         .setLabel("Update Role")
-        .setStyle(ButtonStyle.Success)
+        .setStyle(ButtonStyle.Primary)
     );
 
     await channel.send({ embeds: [embed], components: [row] });
@@ -95,31 +98,34 @@ client.on("interactionCreate", async (interaction) => {
   // ── LINK ACCOUNT ─────────────────────────────────────────
   if (interaction.customId === "link") {
 
-    // Если уже верифицирован — сообщаем
     if (users[userId]?.linked) {
-      return interaction.reply({
-        content: `✅ You are already verified as **${users[userId].roblox}**!\n\nUse "Update Role" to refresh your Discord roles.`,
-        ephemeral: true
-      });
+      const robloxName = users[userId].roblox;
+      const profileUrl = `https://www.roblox.com/users/profile?username=${robloxName}`;
+
+      const embed = new EmbedBuilder()
+        .setTitle("✅ Already Verified")
+        .setDescription(`You are already linked as **[${robloxName}](${profileUrl})**`)
+        .setColor(0x00ff00)
+        .setFooter({ text: "BAR | British Army Regiment" });
+
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
-    // Генерируем новый код
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     users[userId] = { code, linked: false, roblox: null };
 
-    return interaction.reply({
-      content: [
-        `🎮 **ROBLOX VERIFICATION**`,
-        ``,
-        `Join the verification game and enter this code:`,
-        ``,
-        `🔑 \`${code}\``,
-        ``,
-        `⏳ Code expires when you restart verification.`,
-        `After entering the code in-game, click **Update Role**.`
-      ].join("\n"),
-      ephemeral: true
-    });
+    const embed = new EmbedBuilder()
+      .setTitle("🎮 ROBLOX VERIFICATION")
+      .setDescription(
+        "Join the verification game and enter this code:\n\n" +
+        `🔑 \`${code}\`\n\n` +
+        "⏳ Code expires when you restart verification.\n" +
+        "After entering the code in-game, click **Update Role**."
+      )
+      .setColor(0xffaa00)
+      .setFooter({ text: "BAR | British Army Regiment" });
+
+    return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 
   // ── UPDATE ROLE ───────────────────────────────────────────
@@ -127,27 +133,35 @@ client.on("interactionCreate", async (interaction) => {
     const user = users[userId];
 
     if (!user?.linked) {
-      return interaction.reply({
-        content: [
-          `❌ **Not verified yet.**`,
-          ``,
-          `👉 Click **"Link Roblox Account"** first,`,
-          `then enter the code in the Roblox game.`
-        ].join("\n"),
-        ephemeral: true
-      });
+      const embed = new EmbedBuilder()
+        .setTitle("❌ Not Verified")
+        .setDescription(
+          "You are not verified yet.\n\n" +
+          "👉 Click **Link Roblox Account** first,\n" +
+          "then enter the code in the Roblox game."
+        )
+        .setColor(0xff0000)
+        .setFooter({ text: "BAR | British Army Regiment" });
+
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
 
-    // Здесь потом добавишь выдачу ролей через guild.members
-    return interaction.reply({
-      content: [
-        `👤 **YOUR PROFILE**`,
-        ``,
-        `Roblox: **${user.roblox}**`,
-        `Status: ✅ Verified`
-      ].join("\n"),
-      ephemeral: true
-    });
+    const robloxName = user.roblox;
+    const profileUrl = `https://www.roblox.com/users/profile?username=${robloxName}`;
+
+    const embed = new EmbedBuilder()
+      .setTitle(`👤 ${robloxName}`)
+      .setURL(profileUrl)
+      .setColor(0x00ff00)
+      .addFields(
+        { name: "Roblox Username", value: `[${robloxName}](${profileUrl})`, inline: true },
+        { name: "Status", value: "✅ Verified", inline: true },
+        { name: "Discord", value: `<@${userId}>`, inline: true }
+      )
+      .setFooter({ text: "BAR | British Army Regiment" })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [embed], ephemeral: true });
   }
 });
 
