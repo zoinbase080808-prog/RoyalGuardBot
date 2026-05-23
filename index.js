@@ -17,6 +17,7 @@ app.use(express.json());
 const users = {};
 const GROUP_ID = 188707916;
 
+const GUILD_ID             = "1507454509578981538";
 const REPORT_CHANNEL_ID    = "1507711197175218257";
 const REPORT_CATEGORY_ID   = "1507759179589226648";
 const MOD_ROLE_ID          = "1507711328020598897";
@@ -72,13 +73,98 @@ const RANK_MAP = {
   "[FM] Field Marshal":           { prefix: "[FM]", role: "Field Marshal" },
 };
 
-app.post("/verify", (req, res) => {
+// Общая функция обновления ролей и ника
+async function updateMember(discordId, robloxName) {
+  const guild = client.guilds.cache.get(GUILD_ID);
+  if (!guild) return { success: false, error: "Guild not found" };
+
+  const robloxId = await getRobloxUserId(robloxName);
+  const rankName = robloxId ? await getRobloxRank(robloxId) : null;
+  const avatarUrl = robloxId ? await getRobloxAvatar(robloxId) : null;
+
+  const rankInfo = rankName ? RANK_MAP[rankName] : null;
+  const prefix = rankInfo?.prefix || "[???]";
+  const roleName = rankInfo?.role || null;
+
+  let member;
+  try {
+    member = await guild.members.fetch(discordId);
+  } catch {
+    return { success: false, error: "Member not found" };
+  }
+
+  const botMember = guild.members.me;
+  const botHighest = botMember.roles.highest.position;
+  const memberHighest = member.roles.highest.position;
+  const isOwner = guild.ownerId === discordId;
+
+  // Запоминаем старую роль
+  const allRoleNames = Object.values(RANK_MAP).map(r => r.role);
+  const oldRoleName = allRoleNames.find(rn => {
+    const r = guild.roles.cache.find(role => role.name === rn);
+    return r && member.roles.cache.has(r.id);
+  }) || null;
+
+  // Меняем ник
+  try {
+    if (!isOwner && botHighest > memberHighest) {
+      await member.setNickname(`${prefix} ${robloxName}`);
+      console.log(`✏️ Nickname set: ${prefix} ${robloxName}`);
+    }
+  } catch (e) {
+    console.warn("⚠️ Nickname error:", e.message);
+  }
+
+  // Меняем роли
+  let addedRole = null;
+  let removedRole = null;
+
+  if (roleName) {
+    try {
+      for (const rn of allRoleNames) {
+        const oldRole = guild.roles.cache.find(r => r.name === rn);
+        if (oldRole && member.roles.cache.has(oldRole.id)) {
+          await member.roles.remove(oldRole);
+          removedRole = rn;
+        }
+      }
+      const discordRole = guild.roles.cache.find(r => r.name === roleName);
+      if (discordRole) {
+        await member.roles.add(discordRole);
+        addedRole = roleName;
+        console.log(`🎖️ Role added: ${roleName}`);
+      }
+    } catch (e) {
+      console.warn("⚠️ Role error:", e.message);
+    }
+  }
+
+  return {
+    success: true,
+    robloxName,
+    rankName,
+    prefix,
+    avatarUrl,
+    addedRole,
+    removedRole: removedRole === addedRole ? null : removedRole
+  };
+}
+
+// Verify endpoint — теперь автоматически обновляет роли
+app.post("/verify", async (req, res) => {
   const { robloxName, code } = req.body;
   for (const discordId in users) {
     if (users[discordId].code === code && !users[discordId].linked) {
       users[discordId].linked = true;
       users[discordId].roblox = robloxName;
       console.log(`✅ Verified: ${discordId} → ${robloxName}`);
+
+      // Автообновление ролей
+      updateMember(discordId, robloxName).then(result => {
+        if (result.success) console.log(`🔄 Auto-updated roles for ${robloxName}`);
+        else console.warn(`⚠️ Auto-update failed: ${result.error}`);
+      });
+
       return res.json({ success: true });
     }
   }
@@ -199,7 +285,6 @@ client.on("interactionCreate", async (interaction) => {
   if (interaction.customId === "create_report") {
     await interaction.deferReply({ flags: 64 });
 
-    // Проверяем нет ли уже открытого тикета у этого юзера
     const existing = guild.channels.cache.find(
       c => c.name === `report-${interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, "")}` && c.parentId === REPORT_CATEGORY_ID
     );
@@ -214,29 +299,17 @@ client.on("interactionCreate", async (interaction) => {
         type: ChannelType.GuildText,
         parent: REPORT_CATEGORY_ID,
         permissionOverwrites: [
-          {
-            id: guild.roles.everyone,
-            deny: [PermissionFlagsBits.ViewChannel]
-          },
-          {
-            id: userId,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          },
-          {
-            id: MOD_ROLE_ID,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
-          },
-          {
-            id: client.user.id,
-            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels]
-          }
+          { id: guild.roles.everyone, deny: [PermissionFlagsBits.ViewChannel] },
+          { id: userId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+          { id: MOD_ROLE_ID, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+          { id: client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels] }
         ]
       });
 
       const ticketEmbed = new EmbedBuilder()
-        .setTitle("📋 New Report Ticket")
+        .setTitle("New Report Ticket")
         .setDescription(
-          `Hello <@${userId}>! 👋\n\n` +
+          `Hello <@${userId}>!\n\n` +
           "Please describe your report:\n" +
           "• **Who** are you reporting? (Roblox username)\n" +
           "• **What** did they do?\n" +
@@ -276,26 +349,15 @@ client.on("interactionCreate", async (interaction) => {
     setTimeout(async () => {
       try {
         await interaction.channel.delete();
-        console.log(`🔒 Ticket closed by ${interaction.user.tag}`);
       } catch (err) {
         console.error("❌ Error closing ticket:", err);
       }
     }, 5000);
   }
 
-  // ── Верификация ────────────────────────────────────────────────────
+  // ── Верификация: Link ──────────────────────────────────────────────
   if (interaction.customId === "link") {
-    if (users[userId]?.linked) {
-      const robloxName = users[userId].roblox;
-      const profileUrl = `https://www.roblox.com/users/profile?username=${robloxName}`;
-      const embed = new EmbedBuilder()
-        .setTitle("✅ Already Verified")
-        .setDescription(`You are already linked as **[${robloxName}](${profileUrl})**\n\nUse **Update Role** to refresh your roles.`)
-        .setColor(0x00ff00)
-        .setFooter({ text: "BAR | British Army Regiment" });
-      return interaction.reply({ flags: 64, embeds: [embed] });
-    }
-
+    // Генерируем новый код каждый раз (сбрасываем linked)
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
     users[userId] = { code, linked: false, roblox: null };
 
@@ -310,6 +372,7 @@ client.on("interactionCreate", async (interaction) => {
     return interaction.reply({ flags: 64, embeds: [embed] });
   }
 
+  // ── Верификация: Update ────────────────────────────────────────────
   if (interaction.customId === "update") {
     const user = users[userId];
 
@@ -318,7 +381,7 @@ client.on("interactionCreate", async (interaction) => {
         .setTitle("❌ Not Verified")
         .setDescription(
           "You are not verified yet.\n\n" +
-          "👉 Click **Link Roblox Account** first,\n" +
+          "Click **Link Roblox Account** first,\n" +
           "then enter the code in the Roblox game."
         )
         .setColor(0xff0000)
@@ -329,79 +392,23 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply({ flags: 64 });
 
     try {
-      const robloxName = user.roblox;
-      const profileUrl = `https://www.roblox.com/users/profile?username=${robloxName}`;
+      const result = await updateMember(userId, user.roblox);
 
-      const robloxId = await getRobloxUserId(robloxName);
-      const rankName = robloxId ? await getRobloxRank(robloxId) : null;
-      const avatarUrl = robloxId ? await getRobloxAvatar(robloxId) : null;
-
-      console.log(`📊 Rank for ${robloxName}: "${rankName}"`);
-
-      const rankInfo = rankName ? RANK_MAP[rankName] : null;
-      const prefix = rankInfo?.prefix || "[???]";
-      const roleName = rankInfo?.role || null;
-
-      const member = await guild.members.fetch(userId);
-      const botMember = guild.members.me;
-      const botHighest = botMember.roles.highest.position;
-      const memberHighest = member.roles.highest.position;
-      const isOwner = guild.ownerId === userId;
-
-      // Меняем ник
-      const newNickname = `${prefix} ${robloxName}`;
-      try {
-        if (isOwner) {
-          console.warn("⚠️ Cannot change nickname of server owner.");
-        } else if (botHighest <= memberHighest) {
-          console.warn(`⚠️ Bot role too low to change nickname.`);
-        } else {
-          await member.setNickname(newNickname);
-          console.log(`✏️ Nickname set: ${newNickname}`);
-        }
-      } catch (e) {
-        console.warn("⚠️ Nickname error:", e.message);
+      if (!result.success) {
+        return interaction.editReply({ content: "❌ Something went wrong. Try again later." });
       }
 
-      // Запоминаем старую роль
-      const allRoleNames = Object.values(RANK_MAP).map(r => r.role);
-      const oldRoleName = allRoleNames.find(rn => {
-        const r = guild.roles.cache.find(role => role.name === rn);
-        return r && member.roles.cache.has(r.id);
-      }) || null;
-
-      // Меняем роли
-      if (roleName) {
-        try {
-          for (const rn of allRoleNames) {
-            const oldRole = guild.roles.cache.find(r => r.name === rn);
-            if (oldRole && member.roles.cache.has(oldRole.id)) {
-              await member.roles.remove(oldRole);
-            }
-          }
-          const discordRole = guild.roles.cache.find(r => r.name === roleName);
-          if (discordRole) {
-            await member.roles.add(discordRole);
-            console.log(`🎖️ Role added: ${roleName}`);
-          } else {
-            console.warn(`⚠️ Role not found: "${roleName}"`);
-          }
-        } catch (e) {
-          console.warn("⚠️ Role error:", e.message);
-        }
-      }
-
-      const rankChanged = oldRoleName && oldRoleName !== roleName;
+      const profileUrl = `https://www.roblox.com/users/profile?username=${result.robloxName}`;
 
       const embed = new EmbedBuilder()
-        .setAuthor({ name: robloxName, iconURL: avatarUrl, url: profileUrl })
+        .setAuthor({ name: result.robloxName, iconURL: result.avatarUrl, url: profileUrl })
         .setTitle("Roles Update")
         .setDescription("Successfully updated user roles")
         .setColor(0x2b2d31)
         .addFields(
-          { name: "Nickname", value: `${prefix} ${robloxName}`, inline: false },
-          { name: "Roles Added", value: roleName || "None", inline: false },
-          { name: "Roles Removed", value: rankChanged ? oldRoleName : "None", inline: false }
+          { name: "Nickname", value: `${result.prefix} ${result.robloxName}`, inline: false },
+          { name: "Roles Added", value: result.addedRole || "None", inline: false },
+          { name: "Roles Removed", value: result.removedRole || "None", inline: false }
         )
         .setFooter({ text: "BAR | British Army Regiment" })
         .setTimestamp();
