@@ -399,13 +399,17 @@ client.on("interactionCreate", async (interaction) => {
         "OwnerShip"
       ];
 
-      const member = await guild.members.fetch(userId);
+      // Получаем member с force:true чтобы кэш был свежим
+      const member = await guild.members.fetch(userId, { force: true });
 
-      // Запоминаем роли ДО обновления
+      // Запоминаем ID ролей ДО обновления (копируем сразу)
+      const rolesBeforeIds = new Set(member.roles.cache.keys());
       const rolesBefore = TRACKED_ROLES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
-        return r && member.roles.cache.has(r.id);
+        return r && rolesBeforeIds.has(r.id);
       });
+
+      console.log("Roles before:", rolesBefore);
 
       const result = await updateMember(userId, user.roblox);
 
@@ -413,12 +417,15 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: "❌ Something went wrong. Try again later." });
       }
 
-      // Получаем роли ПОСЛЕ обновления
+      // Получаем роли ПОСЛЕ обновления с force:true
       const memberAfter = await guild.members.fetch(userId, { force: true });
+      const rolesAfterIds = new Set(memberAfter.roles.cache.keys());
       const rolesAfter = TRACKED_ROLES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
-        return r && memberAfter.roles.cache.has(r.id);
+        return r && rolesAfterIds.has(r.id);
       });
+
+      console.log("Roles after:", rolesAfter);
 
       const added = rolesAfter.filter(r => !rolesBefore.includes(r));
       const removed = rolesBefore.filter(r => !rolesAfter.includes(r));
