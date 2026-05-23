@@ -363,10 +363,16 @@ client.on("interactionCreate", async (interaction) => {
         console.warn("⚠️ Nickname error:", e.message);
       }
 
+      // Запоминаем старую роль
+      const allRoleNames = Object.values(RANK_MAP).map(r => r.role);
+      const oldRoleName = allRoleNames.find(rn => {
+        const r = guild.roles.cache.find(role => role.name === rn);
+        return r && member.roles.cache.has(r.id);
+      }) || null;
+
       // Меняем роли
       if (roleName) {
         try {
-          const allRoleNames = Object.values(RANK_MAP).map(r => r.role);
           for (const rn of allRoleNames) {
             const oldRole = guild.roles.cache.find(r => r.name === rn);
             if (oldRole && member.roles.cache.has(oldRole.id)) {
@@ -385,11 +391,20 @@ client.on("interactionCreate", async (interaction) => {
         }
       }
 
+      // Формируем строку изменения звания
+      const rankChanged = oldRoleName && oldRoleName !== roleName;
+      const rankLine = rankChanged
+        ? `**${oldRoleName}** → **${roleName || "Unknown"}**`
+        : `**${roleName || rankName || "Not in group"}**`;
+
       const embed = new EmbedBuilder()
         .setAuthor({ name: robloxName, iconURL: avatarUrl, url: profileUrl })
-        .setTitle(rankName || "Not in group")
         .setColor(0x2b2d31)
-        .setDescription(`**${prefix}** ${robloxName}\n[View Roblox Profile](${profileUrl})`)
+        .setDescription(
+          `**${prefix}** ${robloxName}\n` +
+          `Rank: ${rankLine}\n` +
+          `[View Roblox Profile](${profileUrl})`
+        )
         .setFooter({ text: "BAR | British Army Regiment" })
         .setTimestamp();
 
