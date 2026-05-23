@@ -92,7 +92,7 @@ const client = new Client({
   ]
 });
 
-client.once("clientReady", async () => {
+client.once("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
   try {
@@ -109,14 +109,51 @@ client.once("clientReady", async () => {
       return;
     }
 
+    // Правила
+    const rulesEmbed = new EmbedBuilder()
+      .setTitle("📋 OFFICIAL BAR RULES")
+      .setColor(0xff0000)
+      .addFields(
+        {
+          name: "1️⃣ Respect everyone",
+          value: "• Be respectful to all members no matter their rank.\n• Bullying, insults and harassment are not allowed."
+        },
+        {
+          name: "2️⃣ No cheating",
+          value: "• Do not use cheats, exploits or hacks in Roblox.\n• Any unfair advantage is a bannable offense."
+        },
+        {
+          name: "3️⃣ Follow orders",
+          value: "• Listen to your superior officers during operations and trainings.\n• Do not ignore commands from higher ranks."
+        },
+        {
+          name: "4️⃣ No spam or trolling",
+          value: "• Do not spam messages or ping people without reason.\n• Trolling during operations will result in a ban."
+        },
+        {
+          name: "5️⃣ No advertising",
+          value: "• Do not send links to other Discord servers or communities."
+        },
+        {
+          name: "6️⃣ Keep it clean",
+          value: "• No inappropriate content of any kind.\n• Behave properly — this is a serious military community."
+        },
+        {
+          name: "📩 Need help?",
+          value: "If you have any questions or want to report someone, go to <#1507711197175218257> and our <@&1507711328020598897> team will help you."
+        }
+      )
+      .setFooter({ text: "BAR | British Army Regiment" })
+      .setTimestamp();
+
+    await channel.send({ embeds: [rulesEmbed] });
+    console.log("📋 Rules message sent.");
+
+    // Верификация
     const embed = new EmbedBuilder()
       .setTitle("🔗 ROBLOX VERIFICATION SYSTEM")
       .setDescription(
-        "Link your Roblox account to gain access to the server.\n\n" +
-        "**How it works:**\n" +
-        "1️⃣ Click **Link Roblox Account**\n" +
-        "2️⃣ Join the verification game and enter the code\n" +
-        "3️⃣ Return here and click **Update Role**"
+        "Press a button below to verify or update your role."
       )
       .setColor(0x00ff00)
       .setFooter({ text: "BAR | British Army Regiment" })
@@ -137,7 +174,7 @@ client.once("clientReady", async () => {
     console.log("📨 Verification message sent.");
 
   } catch (err) {
-    console.error("❌ Error:", err);
+    console.error("❌ Error sending verification message:", err);
   }
 });
 
@@ -155,10 +192,7 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(`You are already linked as **[${robloxName}](${profileUrl})**\n\nUse **Update Role** to refresh your roles.`)
         .setColor(0x00ff00)
         .setFooter({ text: "BAR | British Army Regiment" });
-      return interaction.reply({
-        flags: 64,
-        embeds: [embed]
-      });
+      return interaction.reply({ flags: 64, embeds: [embed] });
     }
 
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -175,10 +209,7 @@ client.on("interactionCreate", async (interaction) => {
       .setColor(0xffaa00)
       .setFooter({ text: "BAR | British Army Regiment" });
 
-    return interaction.reply({
-      flags: 64,
-      embeds: [embed]
-    });
+    return interaction.reply({ flags: 64, embeds: [embed] });
   }
 
   if (interaction.customId === "update") {
@@ -194,10 +225,7 @@ client.on("interactionCreate", async (interaction) => {
         )
         .setColor(0xff0000)
         .setFooter({ text: "BAR | British Army Regiment" });
-      return interaction.reply({
-        flags: 64,
-        embeds: [embed]
-      });
+      return interaction.reply({ flags: 64, embeds: [embed] });
     }
 
     await interaction.deferReply({ flags: 64 });
@@ -219,12 +247,33 @@ client.on("interactionCreate", async (interaction) => {
       const guild = interaction.guild;
       const member = await guild.members.fetch(userId);
 
+      // ── Отладка иерархии ──────────────────────────────────────────────
+      const botMember = guild.members.me;
+      const botHighest = botMember.roles.highest.position;
+      const memberHighest = member.roles.highest.position;
+      const isOwner = guild.ownerId === userId;
+
+      console.log(`🔍 Bot highest role position: ${botHighest}`);
+      console.log(`🔍 Member highest role position: ${memberHighest}`);
+      console.log(`🔍 Is server owner: ${isOwner}`);
+      console.log(`🔍 Bot can manage nicknames: ${botMember.permissions.has("ManageNicknames")}`);
+      // ─────────────────────────────────────────────────────────────────
+
       // Меняем ник
+      const newNickname = `${prefix} ${robloxName}`;
       try {
-        await member.setNickname(`${prefix} ${robloxName}`);
-        console.log(`✏️ Nickname: ${prefix} ${robloxName}`);
+        if (isOwner) {
+          console.warn("⚠️ Cannot change nickname of server owner — Discord restriction.");
+        } else if (botHighest <= memberHighest) {
+          console.warn(`⚠️ Cannot change nickname: bot role (${botHighest}) must be higher than member role (${memberHighest}). Move bot role higher in server settings.`);
+        } else {
+          await member.setNickname(newNickname);
+          console.log(`✏️ Nickname set: ${newNickname}`);
+        }
       } catch (e) {
         console.warn("⚠️ Nickname error:", e.message);
+        console.warn("⚠️ Error code:", e.code);
+        console.warn("⚠️ HTTP status:", e.status);
       }
 
       // Убираем старые роли и выдаём новую
@@ -235,17 +284,19 @@ client.on("interactionCreate", async (interaction) => {
             const oldRole = guild.roles.cache.find(r => r.name === rn);
             if (oldRole && member.roles.cache.has(oldRole.id)) {
               await member.roles.remove(oldRole);
+              console.log(`➖ Removed role: ${rn}`);
             }
           }
           const discordRole = guild.roles.cache.find(r => r.name === roleName);
           if (discordRole) {
             await member.roles.add(discordRole);
-            console.log(`🎖️ Role: ${roleName}`);
+            console.log(`🎖️ Role added: ${roleName}`);
           } else {
-            console.warn(`⚠️ Role not found: "${roleName}"`);
+            console.warn(`⚠️ Role not found in Discord: "${roleName}"`);
           }
         } catch (e) {
           console.warn("⚠️ Role error:", e.message);
+          console.warn("⚠️ Error code:", e.code);
         }
       }
 
@@ -265,7 +316,7 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.editReply({ embeds: [embed] });
 
     } catch (err) {
-      console.error("❌ Error:", err);
+      console.error("❌ Unexpected error:", err);
       return interaction.editReply({ content: "❌ Something went wrong. Try again later." });
     }
   }
