@@ -392,11 +392,36 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply({ flags: 64 });
 
     try {
+      // Все роли которые отслеживаем (включая не-Roblox)
+      const TRACKED_ROLES = [
+        ...Object.values(RANK_MAP).map(r => r.role),
+        "Moderation",
+        "OwnerShip"
+      ];
+
+      const member = await guild.members.fetch(userId);
+
+      // Запоминаем роли ДО обновления
+      const rolesBefore = TRACKED_ROLES.filter(rn => {
+        const r = guild.roles.cache.find(role => role.name === rn);
+        return r && member.roles.cache.has(r.id);
+      });
+
       const result = await updateMember(userId, user.roblox);
 
       if (!result.success) {
         return interaction.editReply({ content: "❌ Something went wrong. Try again later." });
       }
+
+      // Получаем роли ПОСЛЕ обновления
+      const memberAfter = await guild.members.fetch(userId);
+      const rolesAfter = TRACKED_ROLES.filter(rn => {
+        const r = guild.roles.cache.find(role => role.name === rn);
+        return r && memberAfter.roles.cache.has(r.id);
+      });
+
+      const added = rolesAfter.filter(r => !rolesBefore.includes(r));
+      const removed = rolesBefore.filter(r => !rolesAfter.includes(r));
 
       const profileUrl = `https://www.roblox.com/users/profile?username=${result.robloxName}`;
 
@@ -407,8 +432,8 @@ client.on("interactionCreate", async (interaction) => {
         .setColor(0x2b2d31)
         .addFields(
           { name: "Nickname", value: `${result.prefix} ${result.robloxName}`, inline: false },
-          { name: "Roles Added", value: result.addedRole || "None", inline: false },
-          { name: "Roles Removed", value: result.removedRole || "None", inline: false }
+          { name: "Roles Added", value: added.length > 0 ? added.join(", ") : "None", inline: false },
+          { name: "Roles Removed", value: removed.length > 0 ? removed.join(", ") : "None", inline: false }
         )
         .setFooter({ text: "BAR | British Army Regiment" })
         .setTimestamp();
