@@ -38,33 +38,32 @@ async function getRobloxAvatar(userId) {
   return data.data?.[0]?.imageUrl || null;
 }
 
-// Roblox ранг → Discord роль + префикс ника
 const RANK_MAP = {
-  "[OR-1] Recruit (Trainee)":    { prefix: "[OR-1]", role: "Recruit (Trainee)" },
-  "[OR-2] Private":              { prefix: "[OR-2]", role: "Private" },
-  "[OR-3] Lance Corporal":       { prefix: "[OR-3]", role: "Lance Corporal" },
-  "[OR-4] Corporal":             { prefix: "[OR-4]", role: "Corporal" },
-  "[OR-5] Sergeant":             { prefix: "[OR-5]", role: "Sergeant" },
-  "[OR-6] Staff Sergeant":       { prefix: "[OR-6]", role: "Staff Sergeant" },
-  "[OR-7] Sergeant First Class": { prefix: "[OR-7]", role: "Sergeant First Class" },
-  "[OR-8] Warrant Officer II":   { prefix: "[OR-8]", role: "Warrant Officer II" },
-  "[OR-9] Warrant Officer I":    { prefix: "[OR-9]", role: "Warrant Officer I" },
-  "[OF-1] Lieutenant":           { prefix: "[OF-1]", role: "Lieutenant" },
-  "[OF-2] Captain":              { prefix: "[OF-2]", role: "Captain" },
-  "[OF-3] Major":                { prefix: "[OF-3]", role: "Major" },
-  "[OF-4] Lieutenant Colonel":   { prefix: "[OF-4]", role: "Lieutenant Colonel" },
-  "[OF-5] Colonel":              { prefix: "[OF-5]", role: "Colonel" },
-  "[OF-6] Brigadier":            { prefix: "[OF-6]", role: "Brigadier" },
-  "[OF-7] Major General":        { prefix: "[OF-7]", role: "Major General" },
-  "[OF-8] Lieutenant General":   { prefix: "[OF-8]", role: "Lieutenant General" },
-  "[OF-9] General":              { prefix: "[OF-9]", role: "General" },
-  "[ASM] Army Sergeant Major":   { prefix: "[ASM]", role: "Army Sergeant Major" },
-  "[ACGS] Assistant CGS":        { prefix: "[ACGS]", role: "Assistant CGS" },
-  "[DCGS] Deputy CGS":           { prefix: "[DCGS]", role: "Deputy CGS" },
-  "[CGS] Chief of General Staff":{ prefix: "[CGS]", role: "Chief of General Staff" },
-  "[DEV] Developer":             { prefix: "[DEV]", role: "Developer" },
-  "[BOD] Board of Directors":    { prefix: "[BOD]", role: "Board of Directors" },
-  "[FM] Field Marshal":          { prefix: "[FM]", role: "Field Marshal" },
+  "[OR-1] Recruit (Trainee)":     { prefix: "[OR-1]", role: "Recruit (Trainee)" },
+  "[OR-2] Private":               { prefix: "[OR-2]", role: "Private" },
+  "[OR-3] Lance Corporal":        { prefix: "[OR-3]", role: "Lance Corporal" },
+  "[OR-4] Corporal":              { prefix: "[OR-4]", role: "Corporal" },
+  "[OR-5] Sergeant":              { prefix: "[OR-5]", role: "Sergeant" },
+  "[OR-6] Staff Sergeant":        { prefix: "[OR-6]", role: "Staff Sergeant" },
+  "[OR-7] Sergeant First Class":  { prefix: "[OR-7]", role: "Sergeant First Class" },
+  "[OR-8] Warrant Officer II":    { prefix: "[OR-8]", role: "Warrant Officer II" },
+  "[OR-9] Warrant Officer I":     { prefix: "[OR-9]", role: "Warrant Officer I" },
+  "[OF-1] Lieutenant":            { prefix: "[OF-1]", role: "Lieutenant" },
+  "[OF-2] Captain":               { prefix: "[OF-2]", role: "Captain" },
+  "[OF-3] Major":                 { prefix: "[OF-3]", role: "Major" },
+  "[OF-4] Lieutenant Colonel":    { prefix: "[OF-4]", role: "Lieutenant Colonel" },
+  "[OF-5] Colonel":               { prefix: "[OF-5]", role: "Colonel" },
+  "[OF-6] Brigadier":             { prefix: "[OF-6]", role: "Brigadier" },
+  "[OF-7] Major General":         { prefix: "[OF-7]", role: "Major General" },
+  "[OF-8] Lieutenant General":    { prefix: "[OF-8]", role: "Lieutenant General" },
+  "[OF-9] General":               { prefix: "[OF-9]", role: "General" },
+  "[ASM] Army Sergeant Major":    { prefix: "[ASM]", role: "Army Sergeant Major" },
+  "[ACGS] Assistant CGS":         { prefix: "[ACGS]", role: "Assistant CGS" },
+  "[DCGS] Deputy CGS":            { prefix: "[DCGS]", role: "Deputy CGS" },
+  "[CGS] Chief of General Staff": { prefix: "[CGS]", role: "Chief of General Staff" },
+  "[DEV] Developer":              { prefix: "[DEV]", role: "Developer" },
+  "[BOD] Board of Directors":     { prefix: "[BOD]", role: "Board of Directors" },
+  "[FM] Field Marshal":           { prefix: "[FM]", role: "Field Marshal" },
 };
 
 app.post("/verify", (req, res) => {
@@ -87,10 +86,13 @@ app.listen(process.env.PORT || 3000, () => {
 });
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMembers
+  ]
 });
 
-client.once("ready", async () => {
+client.once("clientReady", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
   try {
@@ -153,7 +155,10 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription(`You are already linked as **[${robloxName}](${profileUrl})**\n\nUse **Update Role** to refresh your roles.`)
         .setColor(0x00ff00)
         .setFooter({ text: "BAR | British Army Regiment" });
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({
+        flags: 64,
+        embeds: [embed]
+      });
     }
 
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -170,7 +175,10 @@ client.on("interactionCreate", async (interaction) => {
       .setColor(0xffaa00)
       .setFooter({ text: "BAR | British Army Regiment" });
 
-    return interaction.reply({ embeds: [embed], ephemeral: true });
+    return interaction.reply({
+      flags: 64,
+      embeds: [embed]
+    });
   }
 
   if (interaction.customId === "update") {
@@ -186,10 +194,13 @@ client.on("interactionCreate", async (interaction) => {
         )
         .setColor(0xff0000)
         .setFooter({ text: "BAR | British Army Regiment" });
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({
+        flags: 64,
+        embeds: [embed]
+      });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: 64 });
 
     try {
       const robloxName = user.roblox;
@@ -199,7 +210,7 @@ client.on("interactionCreate", async (interaction) => {
       const rankName = robloxId ? await getRobloxRank(robloxId) : null;
       const avatarUrl = robloxId ? await getRobloxAvatar(robloxId) : null;
 
-      console.log(`📊 Roblox rank for ${robloxName}: "${rankName}"`);
+      console.log(`📊 Rank for ${robloxName}: "${rankName}"`);
 
       const rankInfo = rankName ? RANK_MAP[rankName] : null;
       const prefix = rankInfo?.prefix || "[???]";
@@ -211,9 +222,9 @@ client.on("interactionCreate", async (interaction) => {
       // Меняем ник
       try {
         await member.setNickname(`${prefix} ${robloxName}`);
-        console.log(`✏️ Nickname set: ${prefix} ${robloxName}`);
+        console.log(`✏️ Nickname: ${prefix} ${robloxName}`);
       } catch (e) {
-        console.warn("⚠️ Cannot change nickname:", e.message);
+        console.warn("⚠️ Nickname error:", e.message);
       }
 
       // Убираем старые роли и выдаём новую
@@ -229,12 +240,12 @@ client.on("interactionCreate", async (interaction) => {
           const discordRole = guild.roles.cache.find(r => r.name === roleName);
           if (discordRole) {
             await member.roles.add(discordRole);
-            console.log(`🎖️ Role assigned: ${roleName}`);
+            console.log(`🎖️ Role: ${roleName}`);
           } else {
-            console.warn(`⚠️ Role not found in Discord: "${roleName}"`);
+            console.warn(`⚠️ Role not found: "${roleName}"`);
           }
         } catch (e) {
-          console.warn("⚠️ Cannot assign role:", e.message);
+          console.warn("⚠️ Role error:", e.message);
         }
       }
 
@@ -254,7 +265,7 @@ client.on("interactionCreate", async (interaction) => {
       return interaction.editReply({ embeds: [embed] });
 
     } catch (err) {
-      console.error("❌ Update error:", err);
+      console.error("❌ Error:", err);
       return interaction.editReply({ content: "❌ Something went wrong. Try again later." });
     }
   }
