@@ -6,7 +6,9 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
-  EmbedBuilder
+  EmbedBuilder,
+  PermissionFlagsBits,
+  ChannelType
 } = require("discord.js");
 
 const app = express();
@@ -14,6 +16,10 @@ app.use(express.json());
 
 const users = {};
 const GROUP_ID = 188707916;
+
+const REPORT_CHANNEL_ID    = "1507711197175218257";
+const REPORT_CATEGORY_ID   = "1507759179589226648";
+const MOD_ROLE_ID          = "1507711328020598897";
 
 async function getRobloxUserId(username) {
   const res = await fetch("https://users.roblox.com/v1/usernames/users", {
@@ -88,93 +94,98 @@ app.listen(process.env.PORT || 3000, () => {
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers
+    GatewayIntentBits.GuildMembers,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
   ]
 });
 
 client.once("ready", async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
+  // ── Верификационный канал ──────────────────────────────────────────
   try {
     const channel = await client.channels.fetch(process.env.CHANNEL_ID);
-    if (!channel) return;
+    if (channel) {
+      const messages = await channel.messages.fetch({ limit: 10 });
+      const existing = messages.find(
+        m => m.author.id === client.user.id && m.components.length > 0
+      );
 
-    const messages = await channel.messages.fetch({ limit: 10 });
-    const existing = messages.find(
-      m => m.author.id === client.user.id && m.components.length > 0
-    );
+      if (!existing) {
+        const rulesEmbed = new EmbedBuilder()
+          .setTitle("📋 OFFICIAL BAR RULES")
+          .setColor(0xff0000)
+          .addFields(
+            { name: "1️⃣ Respect everyone", value: "• Be respectful to all members no matter their rank.\n• Bullying, insults and harassment are not allowed." },
+            { name: "2️⃣ No cheating", value: "• Do not use cheats, exploits or hacks in Roblox.\n• Any unfair advantage is a bannable offense." },
+            { name: "3️⃣ Follow orders", value: "• Listen to your superior officers during operations and trainings.\n• Do not ignore commands from higher ranks." },
+            { name: "4️⃣ No spam or trolling", value: "• Do not spam messages or ping people without reason.\n• Trolling during operations will result in a ban." },
+            { name: "5️⃣ No advertising", value: "• Do not send links to other Discord servers or communities." },
+            { name: "6️⃣ Keep it clean", value: "• No inappropriate content of any kind.\n• Behave properly — this is a serious military community." },
+            { name: "📩 Need help?", value: "If you have any questions or want to report someone, go to <#1507711197175218257> and our <@&1507711328020598897> team will help you." }
+          )
+          .setFooter({ text: "BAR | British Army Regiment" })
+          .setTimestamp();
 
-    if (existing) {
-      console.log("📌 Verification message already exists.");
-      return;
+        await channel.send({ embeds: [rulesEmbed] });
+        console.log("📋 Rules message sent.");
+
+        const verifyEmbed = new EmbedBuilder()
+          .setTitle("🔗 ROBLOX VERIFICATION SYSTEM")
+          .setDescription("Press a button below to verify or update your role.")
+          .setColor(0x00ff00)
+          .setFooter({ text: "BAR | British Army Regiment" })
+          .setTimestamp();
+
+        const verifyRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId("link").setLabel("Link Roblox Account").setStyle(ButtonStyle.Success),
+          new ButtonBuilder().setCustomId("update").setLabel("Update Role").setStyle(ButtonStyle.Primary)
+        );
+
+        await channel.send({ embeds: [verifyEmbed], components: [verifyRow] });
+        console.log("📨 Verification message sent.");
+      } else {
+        console.log("📌 Verification message already exists.");
+      }
     }
-
-    // Правила
-    const rulesEmbed = new EmbedBuilder()
-      .setTitle("📋 OFFICIAL BAR RULES")
-      .setColor(0xff0000)
-      .addFields(
-        {
-          name: "1️⃣ Respect everyone",
-          value: "• Be respectful to all members no matter their rank.\n• Bullying, insults and harassment are not allowed."
-        },
-        {
-          name: "2️⃣ No cheating",
-          value: "• Do not use cheats, exploits or hacks in Roblox.\n• Any unfair advantage is a bannable offense."
-        },
-        {
-          name: "3️⃣ Follow orders",
-          value: "• Listen to your superior officers during operations and trainings.\n• Do not ignore commands from higher ranks."
-        },
-        {
-          name: "4️⃣ No spam or trolling",
-          value: "• Do not spam messages or ping people without reason.\n• Trolling during operations will result in a ban."
-        },
-        {
-          name: "5️⃣ No advertising",
-          value: "• Do not send links to other Discord servers or communities."
-        },
-        {
-          name: "6️⃣ Keep it clean",
-          value: "• No inappropriate content of any kind.\n• Behave properly — this is a serious military community."
-        },
-        {
-          name: "📩 Need help?",
-          value: "If you have any questions or want to report someone, go to <#1507711197175218257> and our <@&1507711328020598897> team will help you."
-        }
-      )
-      .setFooter({ text: "BAR | British Army Regiment" })
-      .setTimestamp();
-
-    await channel.send({ embeds: [rulesEmbed] });
-    console.log("📋 Rules message sent.");
-
-    // Верификация
-    const embed = new EmbedBuilder()
-      .setTitle("🔗 ROBLOX VERIFICATION SYSTEM")
-      .setDescription(
-        "Press a button below to verify or update your role."
-      )
-      .setColor(0x00ff00)
-      .setFooter({ text: "BAR | British Army Regiment" })
-      .setTimestamp();
-
-    const row = new ActionRowBuilder().addComponents(
-      new ButtonBuilder()
-        .setCustomId("link")
-        .setLabel("Link Roblox Account")
-        .setStyle(ButtonStyle.Success),
-      new ButtonBuilder()
-        .setCustomId("update")
-        .setLabel("Update Role")
-        .setStyle(ButtonStyle.Primary)
-    );
-
-    await channel.send({ embeds: [embed], components: [row] });
-    console.log("📨 Verification message sent.");
-
   } catch (err) {
-    console.error("❌ Error sending verification message:", err);
+    console.error("❌ Error in verify channel:", err);
+  }
+
+  // ── Канал репортов ─────────────────────────────────────────────────
+  try {
+    const reportChannel = await client.channels.fetch(REPORT_CHANNEL_ID);
+    if (reportChannel) {
+      const messages = await reportChannel.messages.fetch({ limit: 10 });
+      const existing = messages.find(
+        m => m.author.id === client.user.id && m.components.length > 0
+      );
+
+      if (!existing) {
+        const reportEmbed = new EmbedBuilder()
+          .setTitle("🚨 REPORT SYSTEM")
+          .setDescription(
+            "If you want to report a player for rule violations, click the button below.\n\n" +
+            "A private ticket will be created where you can describe the situation.\n" +
+            "Our moderation team will review it as soon as possible."
+          )
+          .setColor(0xff0000)
+          .setFooter({ text: "BAR | British Army Regiment" })
+          .setTimestamp();
+
+        const reportRow = new ActionRowBuilder().addComponents(
+          new ButtonBuilder().setCustomId("create_report").setLabel("📋 Create Report").setStyle(ButtonStyle.Danger)
+        );
+
+        await reportChannel.send({ embeds: [reportEmbed], components: [reportRow] });
+        console.log("🚨 Report message sent.");
+      } else {
+        console.log("📌 Report message already exists.");
+      }
+    }
+  } catch (err) {
+    console.error("❌ Error in report channel:", err);
   }
 });
 
@@ -182,7 +193,97 @@ client.on("interactionCreate", async (interaction) => {
   if (!interaction.isButton()) return;
 
   const userId = interaction.user.id;
+  const guild = interaction.guild;
 
+  // ── Создать тикет ──────────────────────────────────────────────────
+  if (interaction.customId === "create_report") {
+    await interaction.deferReply({ flags: 64 });
+
+    // Проверяем нет ли уже открытого тикета у этого юзера
+    const existing = guild.channels.cache.find(
+      c => c.name === `report-${interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, "")}` && c.parentId === REPORT_CATEGORY_ID
+    );
+
+    if (existing) {
+      return interaction.editReply({ content: `❌ You already have an open ticket: <#${existing.id}>` });
+    }
+
+    try {
+      const ticketChannel = await guild.channels.create({
+        name: `report-${interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, "")}`,
+        type: ChannelType.GuildText,
+        parent: REPORT_CATEGORY_ID,
+        permissionOverwrites: [
+          {
+            id: guild.roles.everyone,
+            deny: [PermissionFlagsBits.ViewChannel]
+          },
+          {
+            id: userId,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+          },
+          {
+            id: MOD_ROLE_ID,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+          },
+          {
+            id: client.user.id,
+            allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory, PermissionFlagsBits.ManageChannels]
+          }
+        ]
+      });
+
+      const ticketEmbed = new EmbedBuilder()
+        .setTitle("📋 New Report Ticket")
+        .setDescription(
+          `Hello <@${userId}>! 👋\n\n` +
+          "Please describe your report:\n" +
+          "• **Who** are you reporting? (Roblox username)\n" +
+          "• **What** did they do?\n" +
+          "• **When** did it happen?\n" +
+          "• Any **proof**? (screenshots, video)\n\n" +
+          `<@&${MOD_ROLE_ID}> will review your report shortly.`
+        )
+        .setColor(0xff0000)
+        .setFooter({ text: "BAR | British Army Regiment" })
+        .setTimestamp();
+
+      const closeRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder().setCustomId("close_ticket").setLabel("🔒 Close Ticket").setStyle(ButtonStyle.Secondary)
+      );
+
+      await ticketChannel.send({ embeds: [ticketEmbed], components: [closeRow] });
+      await interaction.editReply({ content: `✅ Your ticket has been created: <#${ticketChannel.id}>` });
+      console.log(`🎫 Ticket created: ${ticketChannel.name}`);
+
+    } catch (err) {
+      console.error("❌ Error creating ticket:", err);
+      await interaction.editReply({ content: "❌ Failed to create ticket. Please contact a moderator." });
+    }
+  }
+
+  // ── Закрыть тикет ──────────────────────────────────────────────────
+  if (interaction.customId === "close_ticket") {
+    const member = await guild.members.fetch(userId);
+    const isMod = member.roles.cache.has(MOD_ROLE_ID);
+    const isOwner = guild.ownerId === userId;
+
+    if (!isMod && !isOwner) {
+      return interaction.reply({ flags: 64, content: "❌ Only moderators can close tickets." });
+    }
+
+    await interaction.reply({ content: "🔒 Closing ticket in 5 seconds..." });
+    setTimeout(async () => {
+      try {
+        await interaction.channel.delete();
+        console.log(`🔒 Ticket closed by ${interaction.user.tag}`);
+      } catch (err) {
+        console.error("❌ Error closing ticket:", err);
+      }
+    }, 5000);
+  }
+
+  // ── Верификация ────────────────────────────────────────────────────
   if (interaction.customId === "link") {
     if (users[userId]?.linked) {
       const robloxName = users[userId].roblox;
@@ -244,39 +345,28 @@ client.on("interactionCreate", async (interaction) => {
       const prefix = rankInfo?.prefix || "[???]";
       const roleName = rankInfo?.role || null;
 
-      const guild = interaction.guild;
       const member = await guild.members.fetch(userId);
-
-      // ── Отладка иерархии ──────────────────────────────────────────────
       const botMember = guild.members.me;
       const botHighest = botMember.roles.highest.position;
       const memberHighest = member.roles.highest.position;
       const isOwner = guild.ownerId === userId;
 
-      console.log(`🔍 Bot highest role position: ${botHighest}`);
-      console.log(`🔍 Member highest role position: ${memberHighest}`);
-      console.log(`🔍 Is server owner: ${isOwner}`);
-      console.log(`🔍 Bot can manage nicknames: ${botMember.permissions.has("ManageNicknames")}`);
-      // ─────────────────────────────────────────────────────────────────
-
       // Меняем ник
       const newNickname = `${prefix} ${robloxName}`;
       try {
         if (isOwner) {
-          console.warn("⚠️ Cannot change nickname of server owner — Discord restriction.");
+          console.warn("⚠️ Cannot change nickname of server owner.");
         } else if (botHighest <= memberHighest) {
-          console.warn(`⚠️ Cannot change nickname: bot role (${botHighest}) must be higher than member role (${memberHighest}). Move bot role higher in server settings.`);
+          console.warn(`⚠️ Bot role too low to change nickname.`);
         } else {
           await member.setNickname(newNickname);
           console.log(`✏️ Nickname set: ${newNickname}`);
         }
       } catch (e) {
         console.warn("⚠️ Nickname error:", e.message);
-        console.warn("⚠️ Error code:", e.code);
-        console.warn("⚠️ HTTP status:", e.status);
       }
 
-      // Убираем старые роли и выдаём новую
+      // Меняем роли
       if (roleName) {
         try {
           const allRoleNames = Object.values(RANK_MAP).map(r => r.role);
@@ -284,7 +374,6 @@ client.on("interactionCreate", async (interaction) => {
             const oldRole = guild.roles.cache.find(r => r.name === rn);
             if (oldRole && member.roles.cache.has(oldRole.id)) {
               await member.roles.remove(oldRole);
-              console.log(`➖ Removed role: ${rn}`);
             }
           }
           const discordRole = guild.roles.cache.find(r => r.name === roleName);
@@ -292,11 +381,10 @@ client.on("interactionCreate", async (interaction) => {
             await member.roles.add(discordRole);
             console.log(`🎖️ Role added: ${roleName}`);
           } else {
-            console.warn(`⚠️ Role not found in Discord: "${roleName}"`);
+            console.warn(`⚠️ Role not found: "${roleName}"`);
           }
         } catch (e) {
           console.warn("⚠️ Role error:", e.message);
-          console.warn("⚠️ Error code:", e.code);
         }
       }
 
