@@ -391,19 +391,17 @@ client.on("interactionCreate", async (interaction) => {
         }
       }
 
-      // Формируем строку изменения звания
       const rankChanged = oldRoleName && oldRoleName !== roleName;
-      const rankLine = rankChanged
-        ? `**${oldRoleName}** → **${roleName || "Unknown"}**`
-        : `**${roleName || rankName || "Not in group"}**`;
 
       const embed = new EmbedBuilder()
         .setAuthor({ name: robloxName, iconURL: avatarUrl, url: profileUrl })
+        .setTitle("Roles Update")
+        .setDescription("Successfully updated user roles")
         .setColor(0x2b2d31)
-        .setDescription(
-          `**${prefix}** ${robloxName}\n` +
-          `Rank: ${rankLine}\n` +
-          `[View Roblox Profile](${profileUrl})`
+        .addFields(
+          { name: "Nickname", value: `${prefix} ${robloxName}`, inline: false },
+          { name: "Roles Added", value: roleName || "None", inline: false },
+          { name: "Roles Removed", value: rankChanged ? oldRoleName : "None", inline: false }
         )
         .setFooter({ text: "BAR | British Army Regiment" })
         .setTimestamp();
