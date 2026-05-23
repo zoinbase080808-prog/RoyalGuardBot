@@ -386,15 +386,10 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       const embed = new EmbedBuilder()
-        .setTitle(`${prefix} ${robloxName}`)
-        .setURL(profileUrl)
-        .setColor(0x00ff00)
-        .setThumbnail(avatarUrl)
-        .addFields(
-          { name: "🎮 Roblox", value: `[${robloxName}](${profileUrl})`, inline: true },
-          { name: "🎖️ Rank", value: rankName || "Not in group", inline: true },
-          { name: "💬 Discord", value: `<@${userId}>`, inline: true }
-        )
+        .setAuthor({ name: robloxName, iconURL: avatarUrl, url: profileUrl })
+        .setTitle(rankName || "Not in group")
+        .setColor(0x2b2d31)
+        .setDescription(`**${prefix}** ${robloxName}\n[View Roblox Profile](${profileUrl})`)
         .setFooter({ text: "BAR | British Army Regiment" })
         .setTimestamp();
 
