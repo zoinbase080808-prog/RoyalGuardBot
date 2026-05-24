@@ -575,6 +575,48 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
+// ── Отслеживание ручной выдачи/снятия ролей ───────────────────────────
+client.on("guildMemberUpdate", async (oldMember, newMember) => {
+  const oldRoles = oldMember.roles.cache;
+  const newRoles = newMember.roles.cache;
+
+  const added   = newRoles.filter(r => !oldRoles.has(r.id));
+  const removed = oldRoles.filter(r => !newRoles.has(r.id));
+
+  // Фильтруем — только отслеживаемые роли
+  const addedTracked   = added.filter(r   => ALL_TRACKED_ROLE_NAMES.includes(r.name));
+  const removedTracked = removed.filter(r => ALL_TRACKED_ROLE_NAMES.includes(r.name));
+
+  if (addedTracked.size === 0 && removedTracked.size === 0) return;
+
+  const user = users[newMember.id];
+  const robloxName = user?.roblox || null;
+
+  const avatarUrl = newMember.user.displayAvatarURL();
+
+  const embed = new EmbedBuilder()
+    .setAuthor({ name: robloxName || newMember.user.username, iconURL: avatarUrl })
+    .setTitle("✅ Roles Update")
+    .setDescription("Roles have been updated by a staff member.")
+    .setColor(0x2b2d31)
+    .addFields(
+      { name: "Roles Added",   value: addedTracked.size   > 0 ? addedTracked.map(r => r.name).join(", ")   : "None", inline: false },
+      { name: "Roles Removed", value: removedTracked.size > 0 ? removedTracked.map(r => r.name).join(", ") : "None", inline: false }
+    )
+    .setFooter({ text: "BAR | British Army Regiment" })
+    .setTimestamp();
+
+  try {
+    const channel = await client.channels.fetch(process.env.CHANNEL_ID);
+    // Отправляем эфемерное сообщение невозможно без interaction,
+    // поэтому шлём обычное но с упоминанием — оно видно только в канале
+    await channel.send({ content: `<@${newMember.id}>`, embeds: [embed] });
+    console.log(`📨 Role update sent to verify channel for ${newMember.user.tag}`);
+  } catch (e) {
+    console.warn(`⚠️ Could not send role update:`, e.message);
+  }
+});
+
 // ── Error handlers ─────────────────────────────────────────────────────
 client.on("error", (err) => {
   console.error("⚠️ Discord client error:", err.message);
