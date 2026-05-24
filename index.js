@@ -123,6 +123,9 @@ const RANK_MAP = {
 
 const ALL_RANK_ROLE_NAMES = Object.values(RANK_MAP).map(r => r.role);
 
+const VERIFIED_ROLE_NAME = "✅ Roblox Verified";
+const NON_BA_ROLE_NAME   = "Non-BA";
+
 // ── Основная функция обновления ────────────────────────────────────────
 async function updateMember(discordId, robloxName) {
   const guild = client.guilds.cache.get(GUILD_ID);
@@ -180,7 +183,7 @@ async function updateMember(discordId, robloxName) {
     }
   }
 
-  // Добавляем новую роль (если ещё нет)
+  // Добавляем новую rank-роль (если ещё нет)
   if (newRole) {
     const discordRole = guild.roles.cache.find(r => r.name === newRole);
     if (discordRole) {
@@ -193,12 +196,51 @@ async function updateMember(discordId, robloxName) {
           console.warn(`⚠️ Could not add role ${newRole}:`, e.message);
         }
       } else {
-        // Роль уже была — всё равно считаем как "current"
         addedRole = newRole;
       }
     } else {
       console.warn(`⚠️ Discord role not found: ${newRole}`);
     }
+  }
+
+  // ── ✅ Roblox Verified — выдаём всем верифицированным ──
+  const verifiedRole = guild.roles.cache.find(r => r.name === VERIFIED_ROLE_NAME);
+  if (verifiedRole) {
+    if (!member.roles.cache.has(verifiedRole.id)) {
+      try {
+        await member.roles.add(verifiedRole);
+        console.log(`✅ Verified role added to ${robloxName}`);
+      } catch (e) {
+        console.warn("⚠️ Could not add Verified role:", e.message);
+      }
+    }
+  } else {
+    console.warn(`⚠️ Role not found in Discord: "${VERIFIED_ROLE_NAME}"`);
+  }
+
+  // ── Non-BA — выдаём если не в группе, убираем если в группе ──
+  const nonBaRole = guild.roles.cache.find(r => r.name === NON_BA_ROLE_NAME);
+  if (nonBaRole) {
+    const isInGroup = !!newRole; // есть ранг = состоит в группе
+    const hasNonBa  = member.roles.cache.has(nonBaRole.id);
+
+    if (!isInGroup && !hasNonBa) {
+      try {
+        await member.roles.add(nonBaRole);
+        console.log(`🔵 Non-BA role added to ${robloxName}`);
+      } catch (e) {
+        console.warn("⚠️ Could not add Non-BA role:", e.message);
+      }
+    } else if (isInGroup && hasNonBa) {
+      try {
+        await member.roles.remove(nonBaRole);
+        console.log(`🔴 Non-BA role removed from ${robloxName}`);
+      } catch (e) {
+        console.warn("⚠️ Could not remove Non-BA role:", e.message);
+      }
+    }
+  } else {
+    console.warn(`⚠️ Role not found in Discord: "${NON_BA_ROLE_NAME}"`);
   }
 
   return {
@@ -208,7 +250,6 @@ async function updateMember(discordId, robloxName) {
     prefix,
     avatarUrl,
     addedRole,
-    // Не показываем "removed" если это та же роль что добавили
     removedRole: removedRole === addedRole ? null : removedRole
   };
 }
