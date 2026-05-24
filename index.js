@@ -350,7 +350,16 @@ client.once("ready", async () => {
 
         const verifyEmbed = new EmbedBuilder()
           .setTitle("🔗 ROBLOX VERIFICATION SYSTEM")
-          .setDescription("Press a button below to verify or update your role.")
+          .setDescription(
+            "**📋 Step 1 — Join the group:**\n" +
+            "To receive your rank you must be a member of our Roblox group.\n" +
+            "[🔗 Click here to join |BA| British Army Regiment](https://www.roblox.com/communities/188707916/BA-British-Army-Regiment#!/affiliates)\n\n" +
+            "**🎮 Step 2 — Verify in-game:**\n" +
+            "Click **Link Roblox Account**, then join the verification game and enter your code.\n" +
+            "[🕹️ Open Verification Game](https://www.roblox.com/games/117521342225865/Verification)\n\n" +
+            "**✅ Step 3 — Update your role:**\n" +
+            "After verifying, click **Update Role** to sync your rank."
+          )
           .setColor(0x00ff00)
           .setFooter({ text: "BAR | British Army Regiment" })
           .setTimestamp();
