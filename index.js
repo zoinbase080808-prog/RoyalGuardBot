@@ -332,36 +332,38 @@ client.once("ready", async () => {
 
       if (!existing) {
         const rulesEmbed = new EmbedBuilder()
-          .setTitle("📋 OFFICIAL BAR RULES")
-          .setColor(0xff0000)
-          .addFields(
-            { name: "1️⃣ Respect everyone",    value: "• Be respectful to all members no matter their rank.\n• Bullying, insults and harassment are not allowed." },
-            { name: "2️⃣ No cheating",          value: "• Do not use cheats, exploits or hacks in Roblox.\n• Any unfair advantage is a bannable offense." },
-            { name: "3️⃣ Follow orders",         value: "• Listen to your superior officers during operations and trainings.\n• Do not ignore commands from higher ranks." },
-            { name: "4️⃣ No spam or trolling",   value: "• Do not spam messages or ping people without reason.\n• Trolling during operations will result in a ban." },
-            { name: "5️⃣ No advertising",        value: "• Do not send links to other Discord servers or communities." },
-            { name: "6️⃣ Keep it clean",          value: "• No inappropriate content of any kind.\n• Behave properly — this is a serious military community." },
-            { name: "📩 Need help?",             value: `If you have any questions or want to report someone, go to <#${REPORT_CHANNEL_ID}> and our <@&${MOD_ROLE_ID}> team will help you.` }
+          .setTitle("OFFICIAL REGULATIONS — |BA| British Army Regiment")
+          .setDescription(
+            "All personnel are expected to conduct themselves with discipline and professionalism at all times.\n" +
+            "Violations of these regulations will result in disciplinary action up to and including permanent removal.\n\u200b"
           )
-          .setFooter({ text: "BAR | British Army Regiment" })
+          .setColor(0xc8aa6e)
+          .addFields(
+            { name: "I. CONDUCT", value: "Personnel must treat all members with respect regardless of rank. Harassment, discrimination or personal attacks of any kind are strictly prohibited." },
+            { name: "II. FAIR PLAY", value: "The use of exploits, cheats or third-party software to gain an unfair advantage is a permanent bannable offense." },
+            { name: "III. CHAIN OF COMMAND", value: "Orders issued by superior officers during operations and training sessions must be followed. Insubordination will not be tolerated." },
+            { name: "IV. COMMUNICATIONS", value: "Spam, unsolicited pings and disruptive behaviour in any channel are prohibited. Maintain a professional standard at all times." },
+            { name: "V. ADVERTISING", value: "Promotion of external communities, servers or services without prior authorisation from Command is strictly forbidden." },
+            { name: "VI. CONTENT STANDARDS", value: "Inappropriate, explicit or offensive content of any nature is not permitted. This is a serious military community." },
+            { name: "\u200b", value: `For assistance or to report a violation, open a ticket in <#${REPORT_CHANNEL_ID}>. Our <@&${MOD_ROLE_ID}> team will respond promptly.` }
+          )
+          .setFooter({ text: "BAR | British Army Regiment  ·  Issued by Command" })
           .setTimestamp();
 
         await channel.send({ embeds: [rulesEmbed] });
 
         const verifyEmbed = new EmbedBuilder()
-          .setTitle("🔗 ROBLOX VERIFICATION SYSTEM")
+          .setTitle("ROBLOX VERIFICATION — |BA| British Army Regiment")
           .setDescription(
-            "**📋 Step 1 — Join the group:**\n" +
-            "To receive your rank you must be a member of our Roblox group.\n" +
-            "[🔗 Click here to join |BA| British Army Regiment](https://www.roblox.com/communities/188707916/BA-British-Army-Regiment#!/affiliates)\n\n" +
-            "**🎮 Step 2 — Verify in-game:**\n" +
-            "Click **Link Roblox Account**, then join the verification game and enter your code.\n" +
-            "[🕹️ Open Verification Game](https://www.roblox.com/games/117521342225865/Verification)\n\n" +
-            "**✅ Step 3 — Update your role:**\n" +
-            "After verifying, click **Update Role** to sync your rank."
+            "Complete the steps below to verify your Roblox account and receive your in-game rank.\n\u200b"
           )
-          .setColor(0x00ff00)
-          .setFooter({ text: "BAR | British Army Regiment" })
+          .setColor(0xc8aa6e)
+          .addFields(
+            { name: "STEP 1 — JOIN THE GROUP", value: "You must be an active member of the Roblox group before verification.\n[**|BA| British Army Regiment — Join here**](https://www.roblox.com/communities/188707916/BA-British-Army-Regiment#!/affiliates)" },
+            { name: "STEP 2 — LINK YOUR ACCOUNT", value: "Press **Link Roblox Account** below, then join the verification game and enter the code provided.\n[**Verification Game — Open in Roblox**](https://www.roblox.com/games/117521342225865/Verification)" },
+            { name: "STEP 3 — SYNC YOUR RANK", value: "Once verified, press **Update Role** to receive your rank on this server." }
+          )
+          .setFooter({ text: "BAR | British Army Regiment  ·  Verification System" })
           .setTimestamp();
 
         const verifyRow = new ActionRowBuilder().addComponents(
