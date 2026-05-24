@@ -153,10 +153,12 @@ async function updateMember(discordId, robloxName) {
   const isOwner      = guild.ownerId === discordId;
 
   // ── Смена ника ──
+  // Если не в группе — ставим [CIV], иначе ранговый префикс
+  const displayPrefix = newRole ? prefix : "[CIV]";
   try {
     if (!isOwner && botHighest > memberHighest) {
-      await member.setNickname(`${prefix} ${robloxName}`);
-      console.log(`✏️  Nick → ${prefix} ${robloxName}`);
+      await member.setNickname(`${displayPrefix} ${robloxName}`);
+      console.log(`✏️  Nick → ${displayPrefix} ${robloxName}`);
     }
   } catch (e) {
     console.warn("⚠️ Nickname error:", e.message);
@@ -171,7 +173,7 @@ async function updateMember(discordId, robloxName) {
     .map(rn => guild.roles.cache.find(r => r.name === rn))
     .filter(r => r && member.roles.cache.has(r.id));
 
-  // Удаляем все старые rank-роли (кроме той, что нужно выдать — чтобы не было лишних запросов)
+  // Удаляем все старые rank-роли
   for (const oldRole of currentRankRoles) {
     if (oldRole.name === newRole) continue; // уже нужная — оставим
     try {
@@ -550,8 +552,8 @@ client.on("interactionCreate", async (interaction) => {
         .setDescription("Successfully updated your roles.")
         .setColor(0x2b2d31)
         .addFields(
-          { name: "Nickname",      value: `${result.prefix} ${result.robloxName}`, inline: false },
-          { name: "Rank",          value: result.rankName ?? "Unknown",             inline: false },
+          { name: "Nickname",      value: `${result.rankName ? result.prefix : "[CIV]"} ${result.robloxName}`, inline: false },
+          { name: "Rank",          value: result.rankName ?? "Not in group (CIV)",  inline: false },
           { name: "Roles Added",   value: added.length   > 0 ? added.join(", ")   : "None", inline: false },
           { name: "Roles Removed", value: removed.length > 0 ? removed.join(", ") : "None", inline: false }
         )
