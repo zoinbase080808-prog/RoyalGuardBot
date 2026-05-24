@@ -550,6 +550,13 @@ client.on("interactionCreate", async (interaction) => {
       const added   = rolesAfter.filter(r => !rolesBefore.includes(r));
       const removed = rolesBefore.filter(r => !rolesAfter.includes(r));
 
+      // Текущие TZ роли у игрока
+      const TZ_ROLE_NAMES = ["TZ | GMT", "TZ | EST", "TZ | AEST", "TZ | RU", "TZ | Other"];
+      const currentTzRoles = TZ_ROLE_NAMES.filter(rn => {
+        const r = guild.roles.cache.find(role => role.name === rn);
+        return r && memberAfter.roles.cache.has(r.id);
+      });
+
       const profileUrl = `https://www.roblox.com/users/profile?username=${encodeURIComponent(result.robloxName)}`;
 
       const embed = new EmbedBuilder()
@@ -561,7 +568,8 @@ client.on("interactionCreate", async (interaction) => {
           { name: "Nickname",      value: `${result.rankName ? result.prefix : "[CIV]"} ${result.robloxName}`, inline: false },
           { name: "Rank",          value: result.rankName ?? "Not in group (CIV)", inline: false },
           { name: "Roles Added",   value: added.length   > 0 ? added.join(", ")   : "None", inline: false },
-          { name: "Roles Removed", value: removed.length > 0 ? removed.join(", ") : "None", inline: false }
+          { name: "Roles Removed", value: removed.length > 0 ? removed.join(", ") : "None", inline: false },
+          { name: "TimeZone",      value: currentTzRoles.length > 0 ? currentTzRoles.join(", ") : "Not assigned", inline: false }
         )
         .setFooter({ text: "BAR | British Army Regiment" })
         .setTimestamp();
@@ -572,48 +580,6 @@ client.on("interactionCreate", async (interaction) => {
       console.error("❌ Unexpected error in update:", err);
       return interaction.editReply({ content: "❌ Something went wrong. Try again later." });
     }
-  }
-});
-
-// ── Отслеживание ручной выдачи/снятия ролей ───────────────────────────
-client.on("guildMemberUpdate", async (oldMember, newMember) => {
-  const oldRoles = oldMember.roles.cache;
-  const newRoles = newMember.roles.cache;
-
-  const added   = newRoles.filter(r => !oldRoles.has(r.id));
-  const removed = oldRoles.filter(r => !newRoles.has(r.id));
-
-  // Фильтруем — только отслеживаемые роли
-  const addedTracked   = added.filter(r   => ALL_TRACKED_ROLE_NAMES.includes(r.name));
-  const removedTracked = removed.filter(r => ALL_TRACKED_ROLE_NAMES.includes(r.name));
-
-  if (addedTracked.size === 0 && removedTracked.size === 0) return;
-
-  const user = users[newMember.id];
-  const robloxName = user?.roblox || null;
-
-  const avatarUrl = newMember.user.displayAvatarURL();
-
-  const embed = new EmbedBuilder()
-    .setAuthor({ name: robloxName || newMember.user.username, iconURL: avatarUrl })
-    .setTitle("✅ Roles Update")
-    .setDescription("Roles have been updated by a staff member.")
-    .setColor(0x2b2d31)
-    .addFields(
-      { name: "Roles Added",   value: addedTracked.size   > 0 ? addedTracked.map(r => r.name).join(", ")   : "None", inline: false },
-      { name: "Roles Removed", value: removedTracked.size > 0 ? removedTracked.map(r => r.name).join(", ") : "None", inline: false }
-    )
-    .setFooter({ text: "BAR | British Army Regiment" })
-    .setTimestamp();
-
-  try {
-    const channel = await client.channels.fetch(process.env.CHANNEL_ID);
-    // Отправляем эфемерное сообщение невозможно без interaction,
-    // поэтому шлём обычное но с упоминанием — оно видно только в канале
-    await channel.send({ content: `<@${newMember.id}>`, embeds: [embed] });
-    console.log(`📨 Role update sent to verify channel for ${newMember.user.tag}`);
-  } catch (e) {
-    console.warn(`⚠️ Could not send role update:`, e.message);
   }
 });
 
