@@ -129,11 +129,11 @@ const NON_BA_ROLE_NAME   = "Non-BA";
 const PROTECTED_ROLES = [
   "Moderation",
   "OwnerShip",
-  "TZ | GMT",
-  "TZ | EST",
-  "TZ | AEST",
-  "TZ | RU",
-  "TZ | Other",
+  "🕐 TZ | GMT",
+  "🕐 TZ | EST",
+  "🕐 TZ | AEST",
+  "🕐 TZ | RU",
+  "🕐 TZ | Other",
 ];
 
 // Все роли которые бот отслеживает для показа в embed
@@ -551,7 +551,7 @@ client.on("interactionCreate", async (interaction) => {
       const removed = rolesBefore.filter(r => !rolesAfter.includes(r));
 
       // Текущие TZ роли у игрока
-      const TZ_ROLE_NAMES = ["TZ | GMT", "TZ | EST", "TZ | AEST", "TZ | RU", "TZ | Other"];
+      const TZ_ROLE_NAMES = ["🕐 TZ | GMT", "🕐 TZ | EST", "🕐 TZ | AEST", "🕐 TZ | RU", "🕐 TZ | Other"];
       const currentTzRoles = TZ_ROLE_NAMES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
         return r && memberAfter.roles.cache.has(r.id);
