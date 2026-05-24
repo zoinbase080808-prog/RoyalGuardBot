@@ -405,7 +405,7 @@ client.on("interactionCreate", async (interaction) => {
         new ButtonBuilder().setCustomId("close_ticket").setLabel("🔒 Close Ticket").setStyle(ButtonStyle.Secondary)
       );
 
-      await ticketChannel.send({ embeds: [ticketEmbed], components: [closeRow] });
+      await ticketChannel.send({ content: `<@&${MOD_ROLE_ID}>`, embeds: [ticketEmbed], components: [closeRow] });
       await interaction.editReply({ content: `✅ Your ticket has been created: <#${ticketChannel.id}>` });
       console.log(`🎫 Ticket created: ${ticketChannel.name}`);
 
