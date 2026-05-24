@@ -126,6 +126,23 @@ const ALL_RANK_ROLE_NAMES = Object.values(RANK_MAP).map(r => r.role);
 const VERIFIED_ROLE_NAME = "✅ Roblox Verified";
 const NON_BA_ROLE_NAME   = "Non-BA";
 
+// Роли которые бот НИКОГДА не удаляет и не выдаёт сам —
+// но показывает их в embed при Update.
+// Добавляй сюда любые свои кастомные роли.
+const PROTECTED_ROLES = [
+  "Moderation",
+  "OwnerShip",
+  // "EventHost",   // пример — раскомментируй если нужно
+];
+
+// Все роли которые бот отслеживает для показа в embed (ранги + спец.)
+const ALL_TRACKED_ROLE_NAMES = [
+  ...ALL_RANK_ROLE_NAMES,
+  VERIFIED_ROLE_NAME,
+  NON_BA_ROLE_NAME,
+  ...PROTECTED_ROLES,
+];
+
 // ── Основная функция обновления ────────────────────────────────────────
 async function updateMember(discordId, robloxName) {
   const guild = client.guilds.cache.get(GUILD_ID);
@@ -523,7 +540,7 @@ client.on("interactionCreate", async (interaction) => {
     try {
       // Состояние ролей ДО обновления (с fresh fetch)
       const memberBefore = await guild.members.fetch({ user: userId, force: true });
-      const rolesBefore = ALL_RANK_ROLE_NAMES.filter(rn => {
+      const rolesBefore = ALL_TRACKED_ROLE_NAMES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
         return r && memberBefore.roles.cache.has(r.id);
       });
@@ -536,7 +553,7 @@ client.on("interactionCreate", async (interaction) => {
 
       // Состояние ролей ПОСЛЕ обновления
       const memberAfter = await guild.members.fetch({ user: userId, force: true });
-      const rolesAfter = ALL_RANK_ROLE_NAMES.filter(rn => {
+      const rolesAfter = ALL_TRACKED_ROLE_NAMES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
         return r && memberAfter.roles.cache.has(r.id);
       });
