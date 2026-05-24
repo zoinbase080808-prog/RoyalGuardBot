@@ -334,18 +334,20 @@ client.once("ready", async () => {
         const rulesEmbed = new EmbedBuilder()
           .setTitle("OFFICIAL REGULATIONS — |BA| British Army Regiment")
           .setDescription(
-            "All personnel are expected to conduct themselves with discipline and professionalism at all times.\n" +
-            "Violations of these regulations will result in disciplinary action up to and including permanent removal.\n\u200b"
+            "All personnel are required to read and comply with the following regulations.\n" +
+            "Failure to adhere will result in disciplinary action up to and including permanent removal from the community.\n\n" +
+            "Available on: 🖥️ PC  💻 Laptop  📱 Mobile\n\u200b"
           )
           .setColor(0xc8aa6e)
           .addFields(
-            { name: "I. CONDUCT", value: "Personnel must treat all members with respect regardless of rank. Harassment, discrimination or personal attacks of any kind are strictly prohibited." },
-            { name: "II. FAIR PLAY", value: "The use of exploits, cheats or third-party software to gain an unfair advantage is a permanent bannable offense." },
-            { name: "III. CHAIN OF COMMAND", value: "Orders issued by superior officers during operations and training sessions must be followed. Insubordination will not be tolerated." },
-            { name: "IV. COMMUNICATIONS", value: "Spam, unsolicited pings and disruptive behaviour in any channel are prohibited. Maintain a professional standard at all times." },
-            { name: "V. ADVERTISING", value: "Promotion of external communities, servers or services without prior authorisation from Command is strictly forbidden." },
-            { name: "VI. CONTENT STANDARDS", value: "Inappropriate, explicit or offensive content of any nature is not permitted. This is a serious military community." },
-            { name: "\u200b", value: `For assistance or to report a violation, open a ticket in <#${REPORT_CHANNEL_ID}>. Our <@&${MOD_ROLE_ID}> team will respond promptly.` }
+            { name: "I. RESPECT & CONDUCT", value: "• Treat all members with respect regardless of rank or status.\n• Bullying, harassment and hate speech of any kind are strictly prohibited.\n• Personal attacks, insults and discriminatory remarks will not be tolerated.\n• Impersonating other members, staff or Roblox personnel is forbidden." },
+            { name: "II. CHAIN OF COMMAND", value: "• Orders issued by superior officers during operations and trainings must be followed.\n• Insubordination and deliberate undermining of command authority will result in immediate disciplinary action.\n• Do not attempt to enforce rules if you are not part of the moderation team." },
+            { name: "III. FAIR PLAY", value: "• The use of exploits, cheats, hacks or any third-party software to gain an unfair advantage is a permanent bannable offense.\n• Any bug abuse or glitch exploitation must be reported to staff immediately." },
+            { name: "IV. COMMUNICATIONS", value: "• Do not spam messages, excessive pings, emojis or stickers in any channel.\n• Mic spam and disruptive behaviour in voice channels is prohibited.\n• Use push-to-talk if you have background noise. Do not join and leave voice channels repeatedly." },
+            { name: "V. ADVERTISING", value: "• Promotion of external Discord servers, communities or Roblox groups without prior authorisation from Command is strictly forbidden.\n• Sending unsolicited DMs to members for advertising purposes will result in a permanent ban." },
+            { name: "VI. CONTENT STANDARDS", value: "• Inappropriate, explicit or offensive content of any nature is not permitted.\n• Online dating behaviour and suggestive comments towards other members are prohibited.\n• This is a serious military community — conduct yourself accordingly." },
+            { name: "VII. DISCORD & ROBLOX TERMS OF SERVICE", value: "• All members must comply with the [Discord Terms of Service](https://discordapp.com/terms) and [Community Guidelines](https://discord.com/guidelines).\n• Members under the age of 13 are not permitted on this server." },
+            { name: "\u200b", value: `To report a violation, use the <#${REPORT_CHANNEL_ID}> channel. To report a message directly, reply with \`!report\`. Our <@&${MOD_ROLE_ID}> team will respond promptly.` }
           )
           .setFooter({ text: "BAR | British Army Regiment  ·  Issued by Command" })
           .setTimestamp();
@@ -368,7 +370,7 @@ client.once("ready", async () => {
 
         const verifyRow = new ActionRowBuilder().addComponents(
           new ButtonBuilder().setCustomId("link").setLabel("Link Roblox Account").setStyle(ButtonStyle.Success),
-          new ButtonBuilder().setCustomId("update").setLabel("Update Role").setStyle(ButtonStyle.Primary)
+          new ButtonBuilder().setCustomId("update").setLabel("Update Role").setStyle(ButtonStyle.Success)
         );
 
         await channel.send({ embeds: [verifyEmbed], components: [verifyRow] });
