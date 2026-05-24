@@ -550,13 +550,6 @@ client.on("interactionCreate", async (interaction) => {
       const added   = rolesAfter.filter(r => !rolesBefore.includes(r));
       const removed = rolesBefore.filter(r => !rolesAfter.includes(r));
 
-      // Текущие TZ роли у игрока
-      const TZ_ROLE_NAMES = ["🕐 TZ | GMT", "🕐 TZ | EST", "🕐 TZ | AEST", "🕐 TZ | RU", "🕐 TZ | Other"];
-      const currentTzRoles = TZ_ROLE_NAMES.filter(rn => {
-        const r = guild.roles.cache.find(role => role.name === rn);
-        return r && memberAfter.roles.cache.has(r.id);
-      });
-
       const profileUrl = `https://www.roblox.com/users/profile?username=${encodeURIComponent(result.robloxName)}`;
 
       const embed = new EmbedBuilder()
@@ -568,8 +561,7 @@ client.on("interactionCreate", async (interaction) => {
           { name: "Nickname",      value: `${result.rankName ? result.prefix : "[CIV]"} ${result.robloxName}`, inline: false },
           { name: "Rank",          value: result.rankName ?? "Not in group (CIV)", inline: false },
           { name: "Roles Added",   value: added.length   > 0 ? added.join(", ")   : "None", inline: false },
-          { name: "Roles Removed", value: removed.length > 0 ? removed.join(", ") : "None", inline: false },
-          { name: "TimeZone",      value: currentTzRoles.length > 0 ? currentTzRoles.join(", ") : "Not assigned", inline: false }
+          { name: "Roles Removed", value: removed.length > 0 ? removed.join(", ") : "None", inline: false }
         )
         .setFooter({ text: "BAR | British Army Regiment" })
         .setTimestamp();
