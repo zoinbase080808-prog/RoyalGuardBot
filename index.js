@@ -41,8 +41,6 @@ function saveUsers() {
 // users[discordId] = { code, linked, roblox, pendingCode }
 const users = loadUsers();
 
-// Коды верификации хранятся отдельно — не портят старую привязку
-// pendingCode: { code, expires }
 const GROUP_ID = 188707916;
 
 const GUILD_ID           = "1507454509578981538";
@@ -126,16 +124,19 @@ const ALL_RANK_ROLE_NAMES = Object.values(RANK_MAP).map(r => r.role);
 const VERIFIED_ROLE_NAME = "✅ Roblox Verified";
 const NON_BA_ROLE_NAME   = "Non-BA";
 
-// Роли которые бот НИКОГДА не удаляет и не выдаёт сам —
+// Роли которые бот НИКОГДА не удаляет и не выдаёт сам,
 // но показывает их в embed при Update.
-// Добавляй сюда любые свои кастомные роли.
 const PROTECTED_ROLES = [
   "Moderation",
   "OwnerShip",
-  // "EventHost",   // пример — раскомментируй если нужно
+  "TZ | GMT",
+  "TZ | EST",
+  "TZ | AEST",
+  "TZ | RU",
+  "TZ | Other",
 ];
 
-// Все роли которые бот отслеживает для показа в embed (ранги + спец.)
+// Все роли которые бот отслеживает для показа в embed
 const ALL_TRACKED_ROLE_NAMES = [
   ...ALL_RANK_ROLE_NAMES,
   VERIFIED_ROLE_NAME,
@@ -158,19 +159,17 @@ async function updateMember(discordId, robloxName) {
 
   let member;
   try {
-    // force:true — всегда свежие данные из Discord API
     member = await guild.members.fetch({ user: discordId, force: true });
   } catch {
     return { success: false, error: "Member not found in guild" };
   }
 
-  const botMember    = guild.members.me;
-  const botHighest   = botMember.roles.highest.position;
+  const botMember     = guild.members.me;
+  const botHighest    = botMember.roles.highest.position;
   const memberHighest = member.roles.highest.position;
-  const isOwner      = guild.ownerId === discordId;
+  const isOwner       = guild.ownerId === discordId;
 
   // ── Смена ника ──
-  // Если не в группе — ставим [CIV], иначе ранговый префикс
   const displayPrefix = newRole ? prefix : "[CIV]";
   try {
     if (!isOwner && botHighest > memberHighest) {
@@ -185,14 +184,12 @@ async function updateMember(discordId, robloxName) {
   let addedRole   = null;
   let removedRole = null;
 
-  // Собираем все rank-роли у участника (до изменений)
   const currentRankRoles = ALL_RANK_ROLE_NAMES
     .map(rn => guild.roles.cache.find(r => r.name === rn))
     .filter(r => r && member.roles.cache.has(r.id));
 
-  // Удаляем все старые rank-роли
   for (const oldRole of currentRankRoles) {
-    if (oldRole.name === newRole) continue; // уже нужная — оставим
+    if (oldRole.name === newRole) continue;
     try {
       await member.roles.remove(oldRole);
       removedRole = oldRole.name;
@@ -202,7 +199,6 @@ async function updateMember(discordId, robloxName) {
     }
   }
 
-  // Добавляем новую rank-роль (если ещё нет)
   if (newRole) {
     const discordRole = guild.roles.cache.find(r => r.name === newRole);
     if (discordRole) {
@@ -222,7 +218,7 @@ async function updateMember(discordId, robloxName) {
     }
   }
 
-  // ── ✅ Roblox Verified — выдаём всем верифицированным ──
+  // ── ✅ Roblox Verified ──
   const verifiedRole = guild.roles.cache.find(r => r.name === VERIFIED_ROLE_NAME);
   if (verifiedRole) {
     if (!member.roles.cache.has(verifiedRole.id)) {
@@ -237,10 +233,10 @@ async function updateMember(discordId, robloxName) {
     console.warn(`⚠️ Role not found in Discord: "${VERIFIED_ROLE_NAME}"`);
   }
 
-  // ── Non-BA — выдаём если не в группе, убираем если в группе ──
+  // ── Non-BA ──
   const nonBaRole = guild.roles.cache.find(r => r.name === NON_BA_ROLE_NAME);
   if (nonBaRole) {
-    const isInGroup = !!newRole; // есть ранг = состоит в группе
+    const isInGroup = !!newRole;
     const hasNonBa  = member.roles.cache.has(nonBaRole.id);
 
     if (!isInGroup && !hasNonBa) {
@@ -273,28 +269,25 @@ async function updateMember(discordId, robloxName) {
   };
 }
 
-// ── /verify endpoint (вызывается из Roblox-игры) ──────────────────────
+// ── /verify endpoint ───────────────────────────────────────────────────
 app.post("/verify", async (req, res) => {
   const { robloxName, code } = req.body;
 
   for (const discordId in users) {
     const u = users[discordId];
 
-    // Проверяем pending-код (с TTL)
     if (
       u.pendingCode &&
       u.pendingCode.code === code &&
       Date.now() < u.pendingCode.expires
     ) {
-      // Помечаем как верифицированного
-      users[discordId].linked  = true;
-      users[discordId].roblox  = robloxName;
-      users[discordId].pendingCode = null; // сбрасываем одноразовый код
+      users[discordId].linked      = true;
+      users[discordId].roblox      = robloxName;
+      users[discordId].pendingCode = null;
       saveUsers();
 
       console.log(`✅ Verified: ${discordId} → ${robloxName}`);
 
-      // Автообновление ролей
       updateMember(discordId, robloxName)
         .then(r => {
           if (r.success) console.log(`🔄 Auto-updated: ${robloxName}`);
@@ -494,11 +487,10 @@ client.on("interactionCreate", async (interaction) => {
     return;
   }
 
-  // ── Link: генерируем одноразовый код ──
+  // ── Link ──
   if (interaction.customId === "link") {
     const code = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    // Сохраняем pending-код с TTL, НЕ трогаем уже существующую привязку
     if (!users[userId]) users[userId] = { linked: false, roblox: null };
     users[userId].pendingCode = { code, expires: Date.now() + CODE_TTL_MS };
     saveUsers();
@@ -517,11 +509,10 @@ client.on("interactionCreate", async (interaction) => {
     return interaction.reply({ flags: 64, embeds: [embed] });
   }
 
-  // ── Update: обновляем роли ──
+  // ── Update ──
   if (interaction.customId === "update") {
     const user = users[userId];
 
-    // Принимаем либо уже привязанный аккаунт, либо только что верифицированный
     if (!user?.linked || !user?.roblox) {
       const embed = new EmbedBuilder()
         .setTitle("❌ Not Verified")
@@ -538,7 +529,6 @@ client.on("interactionCreate", async (interaction) => {
     await interaction.deferReply({ flags: 64 });
 
     try {
-      // Состояние ролей ДО обновления (с fresh fetch)
       const memberBefore = await guild.members.fetch({ user: userId, force: true });
       const rolesBefore = ALL_TRACKED_ROLE_NAMES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
@@ -551,7 +541,6 @@ client.on("interactionCreate", async (interaction) => {
         return interaction.editReply({ content: `❌ ${result.error || "Something went wrong. Try again later."}` });
       }
 
-      // Состояние ролей ПОСЛЕ обновления
       const memberAfter = await guild.members.fetch({ user: userId, force: true });
       const rolesAfter = ALL_TRACKED_ROLE_NAMES.filter(rn => {
         const r = guild.roles.cache.find(role => role.name === rn);
@@ -570,7 +559,7 @@ client.on("interactionCreate", async (interaction) => {
         .setColor(0x2b2d31)
         .addFields(
           { name: "Nickname",      value: `${result.rankName ? result.prefix : "[CIV]"} ${result.robloxName}`, inline: false },
-          { name: "Rank",          value: result.rankName ?? "Not in group (CIV)",  inline: false },
+          { name: "Rank",          value: result.rankName ?? "Not in group (CIV)", inline: false },
           { name: "Roles Added",   value: added.length   > 0 ? added.join(", ")   : "None", inline: false },
           { name: "Roles Removed", value: removed.length > 0 ? removed.join(", ") : "None", inline: false }
         )
